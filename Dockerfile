@@ -4,6 +4,13 @@ WORKDIR /usr/src/app
 
 COPY . .
 
+RUN apt-get update &&\
+        apt-get install -y tzdata && \
+        ln -snf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime &&  \
+        echo "Asia/Kolkata" > /etc/timezone
+ 
+ENV TZ=Asia/Kolkata
+
 # The conda environment should be from the dgx (!!NOT from your PC)
 
 RUN conda env create -f environment.yaml

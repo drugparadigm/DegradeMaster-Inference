@@ -71,7 +71,7 @@ def smile2mol(smile, name, comp_id, path):
     Draw.MolToImage(m)
 
 def mol2graph(path, ATOM_TYPE, input_type):
-    print(path)
+    # print(path)
     with open(path) as f:
         lines = f.readlines()
     atom_lines = lines[lines.index('@<TRIPOS>ATOM\n')+1:lines.index('@<TRIPOS>BOND\n')]

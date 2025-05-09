@@ -23,3 +23,5 @@ echo "PyTorch installation complete!"
 
 
 pip install flask
+
+pip install gunicorn

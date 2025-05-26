@@ -31,4 +31,5 @@ ENV FLASK_ENV=production
 EXPOSE 5000
 
 # Replace <env-name> with the name of your conda environment
-CMD [ "bash", "-lc", "source activate model-host-degrademaster &&  flask run --host=0.0.0.0 --port=5000" ]
+# CMD [ "bash", "-lc", "source activate model-host-degrademaster &&  flask run --host=0.0.0.0 --port=5000" ]
+CMD [ "bash", "-lc", "source activate model-host-degrademaster &&  exec gunicorn api:app -b 0.0.0.0:5000 --workers=1 --threads=5  --access-logfile -" ]

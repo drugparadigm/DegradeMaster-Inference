@@ -62,11 +62,11 @@ url = "http://localhost:5000/score"
 
 data = {
     "c0": {
-        "tar_path": "1_BRD9_Q9H8M2.pdb",
-        "e3_ligase_path": "1_VHL_P40337.pdb",
-        "e3_lig_path": "1_VHL_P40337_14_lig_smina_out.mol2",
-        "war_path": "1_BRD9_Q9H8M2_125_lig_smina_out.mol2",
-        "protac_path": "1_VZ185_26_protac.mol2",
+        "target": "1_BRD9_Q9H8M2.pdb",
+        "e3_ligase": "1_VHL_P40337.pdb",
+        "e3_ligase_ligand": "1_VHL_P40337_14_lig_smina_out.mol2",
+        "target_ligand": "1_BRD9_Q9H8M2_125_lig_smina_out.mol2",
+        "protac": "1_VZ185_26_protac.mol2",
         "label": 0
     }
 }

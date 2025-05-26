@@ -138,8 +138,8 @@ def split_dataset(json_path, train_ratio, seed_inpt):
         for idx_train in train_indices:
             value_test = val[idx_test]
             value_train = val[idx_train]
-            if (value_test['tar_path'] == value_train['tar_path']
-                    and value_test['e3_ligase_path'] == value_train['e3_ligase_path']
+            if (value_test['target'] == value_train['target']
+                    and value_test['e3_ligase'] == value_train['e3_ligase']
                     and value_test['smiles'] == value_train['smiles']):
                 duplicate_ids.append(idx_test)
                 duplicate_pairs.add((idx_test, idx_train))

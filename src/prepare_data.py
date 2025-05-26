@@ -12,9 +12,9 @@ from rdkit import Chem
 from pathlib import  Path
 from Bio.PDB import PDBParser
 
-from dataset import VOCAB, Atom, Block, blocks_to_data
-from tools import construct_edges, KNNBatchEdgeConstructor, BlockEmbedding
-from config.config import get_args
+from .dataset import VOCAB, Atom, Block, blocks_to_data
+from .tools import construct_edges, KNNBatchEdgeConstructor, BlockEmbedding
+from .config.config import get_args
 from openbabel import pybel
 
 from rdkit.Chem import AllChem, Draw
@@ -65,9 +65,9 @@ def smile2mol(smile, name, comp_id, path):
     mol = pybel.readstring('smi', smile)
     mol.addh()
     mol.make3D()
-    mol.write("mol2", "./data/input/{}/{}_lig.mol2".format(path, name), overwrite='True')
+    mol.write("mol2", "src/data/input/{}/{}_lig.mol2".format(path, name), overwrite='True')
 
-    m=Chem.MolFromMol2File("./data/input/{}/{}_lig.mol2".format(path, name),sanitize=False)
+    m=Chem.MolFromMol2File("src/data/input/{}/{}_lig.mol2".format(path, name),sanitize=False)
     Draw.MolToImage(m)
 
 def mol2graph(path, ATOM_TYPE, input_type):
@@ -328,7 +328,7 @@ def pdb_to_mol2(pdb_path):
     return mol2path
 
 class GraphData(InMemoryDataset):
-    def __init__(self, name, name_dic, root="data/input",select_pocket_war=None, select_pocket_e3=None, conv_name='EGNN'):
+    def __init__(self, name, name_dic, root="src/data/input",select_pocket_war=None, select_pocket_e3=None, conv_name='EGNN'):
         self.select_pocket_war = select_pocket_war
         self.select_pocket_e3 = select_pocket_e3
         self.conv_name = conv_name
@@ -353,69 +353,63 @@ class GraphData(InMemoryDataset):
                 ]
 
     def process(self):
-        # with open(os.path.join(self.root, '{}.json'.format(args.dataset_type)), 'r') as f:
-        #     name_dic = json.load(f)
-        # print("files",os.listdir("../tmp"))
+        
+        os.makedirs(os.path.join("src/data/input","selected_e3"), exist_ok=True)
+        os.makedirs(os.path.join("src/data/input","selected_target"), exist_ok=True)
         name_dic=self.name_dic
         key_list = list(name_dic.keys())
-        # print("key_list",key_list)
-        # key_list = []
-        # for key, value in name_dic.items():
-        #     if value['label'] == 0 or value['label'] == 1:
-        #         key_list.append(key)
 
-        # print('Pocket selection starts!')
         root=self.root
         tar_path_d, e3_path_d = {}, {}
         for key in key_list:
-            tar_path = os.path.join(root, name_dic[key]['tar_path'])
-            war_path = os.path.join(root, name_dic[key]['war_path'])
-            e3_ligase_path = os.path.join(root, name_dic[key]['e3_ligase_path'])
-            e3_lig_path = os.path.join(root, name_dic[key]['e3_lig_path'])
+            target = os.path.join(root, name_dic[key]['target'])
+            target_ligand = os.path.join(root, name_dic[key]['target_ligand'])
+            e3_ligase = os.path.join(root, name_dic[key]['e3_ligase'])
+            e3_ligase_ligand = os.path.join(root, name_dic[key]['e3_ligase_ligand'])
 
             if isinstance(self.select_pocket_war, int):
-                tar_name = basename(splitext(tar_path)[0])
-                war_name = basename(splitext(war_path)[0])
+                tar_name = basename(splitext(target)[0])
+                war_name = basename(splitext(target_ligand)[0])
                 selection_name = '%s_pocket_%d' % (tar_name, self.select_pocket_war)
-                tar_path_s = './data/input/selected_target/' + selection_name + '.mol2'
+                tar_path_s = 'src/data/input/selected_target/' + selection_name + '.mol2'
                 if not isfile(tar_path_s):
                     # print("Selecting residues within %d of warhead" % self.select_pocket_war)
-                    cmd.load(tar_path, format='pdb')
-                    cmd.load(war_path, format='mol2')
+                    cmd.load(target, format='pdb')
+                    cmd.load(target_ligand, format='mol2')
                     cmd.select(selection_name,
                                selection='(not %s) & br. all within %d of %s'
                                          % (war_name, self.select_pocket_war, war_name))
                     cmd.save(tar_path_s, selection_name)
                     cmd.delete('all')
-                tar_path = tar_path_s
-                tar_path_d[key] = tar_path
+                target = tar_path_s
+                tar_path_d[key] = target
                 # cmd.quit()
             if isinstance(self.select_pocket_e3, int):
-                e3_name = basename(splitext(e3_ligase_path)[0])
-                e3_lig_name = basename(splitext(e3_lig_path)[0])
+                e3_name = basename(splitext(e3_ligase)[0])
+                e3_lig_name = basename(splitext(e3_ligase_ligand)[0])
                 selection_name = '%s_pocket_%d' % (e3_name, self.select_pocket_e3)
-                e3_ligase_path_s = './data/input/selected_e3/' + selection_name + '.mol2'
+                e3_ligase_path_s = 'src/data/input/selected_e3/' + selection_name + '.mol2'
                 if not isfile(e3_ligase_path_s):
                     # print("Selecting residues within %d of e3 ligand" % self.select_pocket_e3)
-                    cmd.load(e3_ligase_path, format='pdb')
-                    cmd.load(e3_lig_path, format='mol2')
+                    cmd.load(e3_ligase, format='pdb')
+                    cmd.load(e3_ligase_ligand, format='mol2')
 
                     cmd.select(name=selection_name,
                                selection='(not %s) & br. all within %d of %s'
                                          % (e3_lig_name, self.select_pocket_e3, e3_lig_name))
                     cmd.save(e3_ligase_path_s, selection_name)
                     cmd.delete('all')
-                e3_ligase_path = e3_ligase_path_s
-                e3_path_d[key] = e3_ligase_path
+                e3_ligase = e3_ligase_path_s
+                e3_path_d[key] = e3_ligase
         # print('Pocket selection finished!')
 
         protac_graphs = []
         for key in key_list:
             if self.conv_name == 'EGNN':
-                graph = mol2_to_graph_coords(os.path.join(root, name_dic[key]['protac_path']), ATOMS,
+                graph = mol2_to_graph_coords(os.path.join(root, name_dic[key]['protac']), ATOMS,
                                              False, 'ligand')
             else:
-                graph = mol2graph(os.path.join(root, name_dic[key]['protac_path']), ATOMS, 'ligand')
+                graph = mol2graph(os.path.join(root, name_dic[key]['protac']), ATOMS, 'ligand')
             protac_graphs.append(graph)
         data, slices = self.collate(protac_graphs)
         torch.save((data, slices), self.processed_paths[0])
@@ -429,12 +423,12 @@ class GraphData(InMemoryDataset):
                 else:
                     graph = mol2graph(e3_path_d[key], ATOMS, 'pocket')
             else:
-                mol2path = pdb_to_mol2(os.path.join(root, name_dic[key]['e3_ligase_path']))
+                mol2path = pdb_to_mol2(os.path.join(root, name_dic[key]['e3_ligase']))
                 if self.conv_name == 'EGNN':
                     graph = mol2_to_graph_coords(mol2path, ATOMS, False, 'protein')
                 else:
                     graph = mol2graph(mol2path, ATOMS, 'protein')
-                # graph = pdb2graph(os.path.join(self.root, 'ligase_pocket', name_dic[key]['e3_ligase_path']))
+                # graph = pdb2graph(os.path.join(self.root, 'ligase_pocket', name_dic[key]['e3_ligase']))
             ligase_pocket.append(graph)
         data, slices = self.collate(ligase_pocket)
         torch.save((data, slices), self.processed_paths[1])
@@ -449,12 +443,12 @@ class GraphData(InMemoryDataset):
                     else:
                         graph = mol2graph(tar_path_d[key], ATOMS, 'pocket')
                 else:
-                    mol2path = pdb_to_mol2(os.path.join(root, name_dic[key]['tar_path']))
+                    mol2path = pdb_to_mol2(os.path.join(root, name_dic[key]['target']))
                     if self.conv_name == 'EGNN':
                         graph = mol2_to_graph_coords(mol2path, ATOMS, False, 'protein')
                     else:
                         graph = mol2graph(mol2path, ATOMS, 'protein')
-                    # graph = pdb2graph(os.path.join(self.root, 'target_pocket', name_dic[key]['tar_path']))
+                    # graph = pdb2graph(os.path.join(self.root, 'target_pocket', name_dic[key]['target']))
             except:
                 print('Something wrong!')
                 print('{}: {}'.format(key, name_dic[key]))
@@ -464,13 +458,13 @@ class GraphData(InMemoryDataset):
         # print('target_pocket processed!')
 
         features = []
-        with open('./data/input/features/protac_feature_case1.npy', 'rb') as f:
+        with open('src/data/input/features/protac_feature_case1.npy', 'rb') as f:
             protac_feature = np.load(f, allow_pickle=True)
 
-        with open('./data/input/features/target_feature_case1.npy', 'rb') as f:
+        with open('src/data/input/features/target_feature_case1.npy', 'rb') as f:
             target_feature = np.load(f, allow_pickle=True)
 
-        with open('./data/input/features/e3_feature_case1.npy', 'rb') as f:
+        with open('src/data/input/features/e3_feature_case1.npy', 'rb') as f:
             e3_feature = np.load(f, allow_pickle=True)
 
         feature = np.concatenate((protac_feature, target_feature, e3_feature), axis=1)

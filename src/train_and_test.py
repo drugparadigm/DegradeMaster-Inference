@@ -1,11 +1,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from utils.pseudo_utils import EntropyLoss, get_consistent_loss_new, cosine_similarity, local_ent_loss
+from .utils.pseudo_utils import EntropyLoss, get_consistent_loss_new, cosine_similarity, local_ent_loss
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 
-from nn_utils import save_model
+from .nn_utils import save_model
 
 def valids(model, test_loader, device):
     with torch.no_grad():

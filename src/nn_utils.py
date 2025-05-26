@@ -59,10 +59,10 @@ def save_model(epoch, model, args):
 def load_model(model, args, loaded_epoch, case_study=False):
     if case_study:
         # print("loaded_model_egnn")
-        loaded_content = torch.load('checkpoint/1000/model_EGNN_1000.pth',
-                                    map_location=lambda storage, loc: storage)
+        loaded_content = torch.load('src/checkpoint/1000/model_EGNN_1000.pth',
+                                    map_location=lambda storage, loc: storage,weights_only=False)
     else:
-        loaded_content = torch.load('checkpoint/{}/model_{}_{}.pth'.format(loaded_epoch, args.conv_name, loaded_epoch),
+        loaded_content = torch.load('src/checkpoint/{}/model_{}_{}.pth'.format(loaded_epoch, args.conv_name, loaded_epoch),
                                     map_location=lambda storage, loc: storage)
 
 

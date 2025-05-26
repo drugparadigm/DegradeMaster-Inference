@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 ########## import your packages below ##########
-from pdb_utils import Atom, VOCAB, dist_matrix_from_coords
+from .pdb_utils import Atom, VOCAB, dist_matrix_from_coords
 
 
 class Block:

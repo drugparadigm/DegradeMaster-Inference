@@ -1,41 +1,37 @@
 import numpy as np
 import torch
 import os
-
+from flask import request
 import logging
 import json
 from pathlib import  Path
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from protacloader import PROTACSet, collater
-from model import GraphConv, ProtacModel, GATTConv, EGNNConv
-from train_and_test import train, valids
-from config.config import get_args
+from .protacloader import PROTACSet, collater
+from .model import GraphConv, ProtacModel, GATTConv, EGNNConv
+from .train_and_test import train, valids
+from .config.config import get_args
 
-from prepare_data import GraphData
-from nn_utils import load_model
+from .prepare_data import GraphData
+from .nn_utils import load_model
 
-import ast
-import sys
 TRAIN_NAME = "test"
-root = "data/input"
-logging.basicConfig(filename="log/"+TRAIN_NAME+".log", filemode="w", level=logging.DEBUG)
-os.makedirs(os.path.join("data/input","selected_e3"), exist_ok=True)
-os.makedirs(os.path.join("data/input","selected_target"), exist_ok=True)
+root = "src/data/input"
+logging.basicConfig(filename="src/log/"+TRAIN_NAME+".log", filemode="w", level=logging.DEBUG)
 args = get_args('case')
-args.conv_name = 'EGNN'
-
-
 
 def main():
-    # print("root",root)
-    tmp_file_path = os.path.join('..', 'tmp')
+    
+    reqId=request.form.get('reqId')
 
-    # print("files",os.listdir(tmp_file_path))
-    data = sys.argv[1]
+    with open(f"src/data/input/{reqId}_input.json", "r") as file:
+        name_list_dic = json.load(file)
 
-
-    name_dic = ast.literal_eval(data)
+    name_dic = {}
+    if len(name_list_dic) == 6:
+        name_dic = {"c0": name_list_dic}
+    
+        
     name_list=list(name_dic.keys())
     protac_graphs = GraphData('protac', root=root,name_dic=name_dic,
                                select_pocket_war=args.select_pocket_war, select_pocket_e3=args.select_pocket_e3, conv_name=args.conv_name)
@@ -44,15 +40,8 @@ def main():
     target_pocket = GraphData("target_pocket", root=root,name_dic=name_dic,
                                select_pocket_war=args.select_pocket_war, select_pocket_e3=args.select_pocket_e3, conv_name=args.conv_name)
 
-    # with open(os.path.join(root, '{}.json'.format(args.dataset_type)), 'r') as f:
-    #     name_dic = json.load(f)
-
-    # name_list = list(name_dic.keys())
-
-
-    label = torch.load(os.path.join(target_pocket.processed_dir, "label.pt"))
-    feature = torch.load(os.path.join(target_pocket.processed_dir, "feature.pt"))
-
+    label = torch.load(os.path.join(target_pocket.processed_dir, "label.pt",),weights_only=False)
+    feature = torch.load(os.path.join(target_pocket.processed_dir, "feature.pt"),weights_only=False)
 
     protac_set = PROTACSet(
         name_list,
@@ -87,7 +76,6 @@ def main():
         target_pocket_model = GATTConv(num_embeddings=118, hidden_size=args.hidden_size)
         protac_model = GATTConv(num_embeddings=118, hidden_size=args.hidden_size)
     elif args.conv_name == "EGNN":
-        # print("args.conv_name",args.conv_name)
         ligase_pocket_model = EGNNConv(num_embeddings=118, in_node_nf=1, in_edge_nf=1,graph_nf=args.e3_dim, hidden_nf=args.hidden_size,
                                        n_layers=args.n_layers, node_attr=0, attention=args.attention)
         protac_model = EGNNConv(num_embeddings=118, in_node_nf=1, in_edge_nf=1, graph_nf=args.protac_dim, hidden_nf=args.hidden_size,
@@ -104,8 +92,8 @@ def main():
         args.hidden_size,
     )
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # print("device",device)
-    writer = SummaryWriter(f'runs/{TRAIN_NAME}')
+
+    writer = SummaryWriter(f'src/runs/{TRAIN_NAME}')
 
     load_model(model, args, loaded_epoch=1000, case_study=True)
     if args.mode == 'Train':
@@ -118,48 +106,13 @@ def main():
             LOSS_NAME=TRAIN_NAME,
             args=args
         )
-    # loss_l, acc_l, auc_l, f1_l, pre_l, rec_l = [], [], [], [], [], []
-    for i in range(10):
-        # loss, acc, auc, f1, pre, rec, latent_val = valids(model.to(device),
-        #                         test_loader=testloader,
-        #                         device=device)
-        # saved_dict = {'latent_emb': latent_val}
-        output_dic_test=valids(model.to(device),
+
+    output_dic_test=valids(model.to(device),
                                 test_loader=testloader,
                                 device=device)
-        # np.save('./latent/latent_ours1_{}.npy'.format(args.hidden_size), saved_dict)
+       
 
-        # print('Test Loss: {} | Accuracy: {} | AUC: {} | F1: {} | PRE: {} | REC: {}'.format(loss, acc, auc, f1, pre, rec))
-        # loss_l.append(loss)
-        # acc_l.append(acc)
-        # auc_l.append(auc)
-        # f1_l.append(f1)
-        # pre_l.append(pre)
-        # rec_l.append(rec)
-    # print("------------------- Final Test -------------------")
-    # print('Base model: ', args.conv_name)
-    # print('Train rate: ', args.train_rate)
-    # print('Loss in infer: ', np.mean(loss_l))
-    # print('Accuracy in infer: ', np.mean(acc_l))
-    # print('AUC in infer: ', np.mean(auc_l))
-    # print('F1 in infer: ', np.mean(f1_l))
-    # print('PRE in infer: ', np.mean(pre_l))
-    # print('REC in infer: ', np.mean(rec_l))
-
-    # with open('./eval/PROTAC_demo_saved.npy', 'rb') as f:
-    #     output_dic_test = np.load(f, allow_pickle=True).item()
-
-
-    i = 0
-    for key, value in name_dic.items():
-        # print(key)
-        print('Prediction: {}'.format(output_dic_test['pred'][i]))
-        # print('Predicted probability: {}'.format(output_dic_test['score'][i]))
-        # print('label: {}'.format(output_dic_test['label'][i]))
-        # print('\n')
-        i += 1
+    return output_dic_test['pred'][0]
 
 if __name__ == "__main__":
-    Path('log').mkdir(exist_ok=True)
-    Path('model').mkdir(exist_ok=True)
     main()

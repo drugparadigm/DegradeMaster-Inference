@@ -3,30 +3,56 @@ Inference code of ISMB/ECCB'25 submitted paper "Accurate PROTAC targeted degrada
 
 * Install Docker engine.
 * Add the files/folders required only for inference in src directory
-* Add the files required for input (if any) in src/data/input
-* If in any file you need to access the input files then access them from /data/input
+
+* Use request.form to access inputs from the request
+* Make sure request.form has reqId
+* Save or Dump inputs in src/data/input with filename as {reqId}-input.json
+* If the request body are files then dump those files in src/data/input with reqId as prefix along with filebane
+* If you need to access the input files(i.e. in the code file) then retrieve them from src/data/input
+* To access other inputs in main function, get reqId using:
+```
+reqId=request.form.get('reqId')
+```
+then access via {reqId}-input.json
+
+
 * Add the model checkpoints in src/checkpoints dir
+* Make sure your checkpoints are saved as torch.save(model.state_dict())
+* If the code downloads any pre-trained models, please let us know.
+
+
 * Generate a yaml file with your conda environment from dgx with the command:
 ```
-conda env export > environment.yml
+conda env export > environment.yaml
 ```
+* Make sure the yaml file contains packages required only for inference
+
 * Add the packages that are hard to install with the installation commands in additional-softwares.sh
-* Rename the filenames and environment names in Dockerfile
-* Rename the inference file name in api.py
-* Change the inference file(that you call in api.py) so that it accepts input from arguments.
-* For now keep your input files in src/data/input directory and in the request json specify the file names.
-  Use these filenames to access the files from data/input in your inference file.
+
+* Rename the filenames and environment names in Dockerfile.
+
+* Rename the function(main) in api.py with your main inference function.
+
+
+* Raise all the possible Exceptions and catch them in api.py
+* Raise the Exceptions so the users should be able to understand the error and rectify it 
+
+* Make sure to rename the files/folders in api.py whereever required.
+* Do not have any nested json as output
 * Run api.py with the above changes:
 ```
-    python api.py
+gunicorn api:app -b 0.0.0.0:5000 --workers=1 --threads=5  --access-logfile -
 ```
+
 * If there are no errors then create a docker image with the command:
 ```
     docker build -t <image-name> .
 ```
 * Run the image with:
 ```
-    docker run -p 5000:5000 <image-name> 
+    docker run -p 5000:5000 <image-name> (If your PC has no GPU)
+
+    docker run --gpus all -p 5000:5000 <image-name> (If your PC has GPU)
 ```
 
 #### Test the /hi endpoint
@@ -50,29 +76,20 @@ print("Status code:", resp.status_code)
 print("Headers:", resp.headers)
 print("Body:",resp.text)
 #print(json.dumps(resp.json(), indent=2)) #uncomment if it is a json response
-
 ```
-
 #### Test the /score endpoint
-* Use Python’s requests library to send an HTTP POST to the service and print the result:
 ```
 import requests
 
-url = "http://localhost:5000/score"
-
+url = "http://0.0.0.0:5000/score"  
 data = {
-    "c0": {
-        "target": "1_BRD9_Q9H8M2.pdb",
-        "e3_ligase": "1_VHL_P40337.pdb",
-        "e3_ligase_ligand": "1_VHL_P40337_14_lig_smina_out.mol2",
-        "target_ligand": "1_BRD9_Q9H8M2_125_lig_smina_out.mol2",
-        "protac": "1_VZ185_26_protac.mol2",
-        "label": 0
-    }
+    <Please provide the required input format for the API request body.Include reqId.>
 }
 
-response = requests.post(url, json=data)
+# Send as multipart/form-data
+response = requests.post(url, data=data)
 
 print(response.text)
 
 ```
+ 
